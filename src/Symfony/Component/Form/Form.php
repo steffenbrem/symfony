@@ -748,7 +748,11 @@ class Form implements \IteratorAggregate, FormInterface
         }
 
         foreach ($this->children as $child) {
-            if ($child->isSubmitted() && !$child->isValid()) {
+            if ($child->isSubmitted()) {
+                if (!$child->isValid()) {
+                    return false;
+                }
+            } else if ($child->isEmpty()) {
                 return false;
             }
         }
