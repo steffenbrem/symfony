@@ -84,7 +84,6 @@
         ],
         "files": [ "src/Symfony/Component/Intl/Resources/stubs/functions.php" ]
     },
-    "minimum-stability": "dev",
     "extra": {
         "branch-alias": {
             "dev-master": "2.5-dev"
