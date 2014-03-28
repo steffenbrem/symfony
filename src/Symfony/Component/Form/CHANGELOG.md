@@ -4,12 +4,15 @@ CHANGELOG
 2.5.0
 ------
 
+ * deprecated options "max_length" and "pattern" in favor of putting these values in "attr" option
  * added an option for multiple files upload
  * form errors now reference their cause (constraint violation, exception, ...)
  * form errors now remember which form they were originally added to
  * [BC BREAK] added two optional parameters to FormInterface::getErrors() and
    changed the method to return a Symfony\Component\Form\FormErrorIterator
    instance instead of an array
+ * unsubmitted forms are not validated anymore
+ * errors mapped to unsubmitted forms are discarded now
 
 2.4.0
 -----

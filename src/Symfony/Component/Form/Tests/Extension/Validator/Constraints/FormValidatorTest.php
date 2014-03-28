@@ -18,9 +18,9 @@ use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\Extension\Validator\Constraints\Form;
 use Symfony\Component\Form\Extension\Validator\Constraints\FormValidator;
 use Symfony\Component\Form\SubmitButtonBuilder;
-use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\NotNull;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Tests\Fixtures\FailingConstraint;
 
 /**
  * @author Bernhard Schussek <bschussek@gmail.com>
@@ -47,6 +47,11 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
      */
     private $validator;
 
+    /**
+     * @var \PHPUnit_Framework_MockObject_MockObject
+     */
+    private $dataMapper;
+
     protected function setUp()
     {
         $this->dispatcher = $this->getMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
@@ -55,6 +60,7 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
             'Symfony\Component\Form\Extension\Validator\Util\ServerParams',
             array('getNormalizedIniPostMaxSize', 'getContentLength')
         );
+        $this->dataMapper = $this->getMock('Symfony\Component\Form\DataMapperInterface');
         $this->validator = new FormValidator($this->serverParams);
     }
 
@@ -64,8 +70,12 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
         $object = $this->getMock('\stdClass');
         $options = array('validation_groups' => array('group1', 'group2'));
         $form = $this->getBuilder('name', '\stdClass', $options)
+            ->setCompound(true)
+            ->setDataMapper($this->dataMapper)
             ->setData($object)
             ->getForm();
+
+        $form->submit(array());
 
         $context->expects($this->at(0))
             ->method('validate')
@@ -89,9 +99,14 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
             'validation_groups' => array('group1', 'group2'),
             'constraints' => array($constraint1, $constraint2),
         );
+
         $form = $this->getBuilder('name', '\stdClass', $options)
+            ->setCompound(true)
+            ->setDataMapper($this->dataMapper)
             ->setData($object)
             ->getForm();
+
+        $form->submit(array());
 
         // First default constraints
         $context->expects($this->at(0))
@@ -120,13 +135,15 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
 
         $parent = $this->getBuilder('parent', null, array('cascade_validation' => false))
             ->setCompound(true)
-            ->setDataMapper($this->getDataMapper())
+            ->setDataMapper($this->dataMapper)
+            ->setData($object)
             ->getForm();
+
         $options = array('validation_groups' => array('group1', 'group2'));
         $form = $this->getBuilder('name', '\stdClass', $options)->getForm();
         $parent->add($form);
 
-        $form->setData($object);
+        $form->submit(array());
 
         $context->expects($this->never())
             ->method('validate');
@@ -144,16 +161,20 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
 
         $parent = $this->getBuilder('parent', null, array('cascade_validation' => false))
             ->setCompound(true)
-            ->setDataMapper($this->getDataMapper())
+            ->setDataMapper($this->dataMapper)
             ->getForm();
         $options = array(
             'validation_groups' => array('group1', 'group2'),
             'constraints' => array($constraint1, $constraint2),
         );
         $form = $this->getBuilder('name', '\stdClass', $options)
+            ->setCompound(true)
+            ->setDataMapper($this->dataMapper)
             ->setData($object)
             ->getForm();
         $parent->add($form);
+
+        $form->submit(array());
 
         $context->expects($this->at(0))
             ->method('validateValue')
@@ -174,10 +195,12 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
         $form = $this->getBuilder('name', '\stdClass', array(
                 'validation_groups' => array(),
             ))
+            ->setCompound(true)
+            ->setDataMapper($this->dataMapper)
             ->setData($object)
             ->getForm();
 
-        $form->setData($object);
+        $form->submit(array());
 
         $context->expects($this->never())
             ->method('validate');
@@ -243,6 +266,30 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
                 array('{{ value }}' => 'foo', '{{ foo }}' => 'bar'),
                 'foo'
             );
+        $context->expects($this->never())
+            ->method('addViolationAt');
+
+        $this->validator->initialize($context);
+        $this->validator->validate($form, new Form());
+    }
+
+    public function testDontValidateIfNotSubmitted()
+    {
+        $context = $this->getMockExecutionContext();
+
+        $form = $this->getBuilder('name', '\stdClass', array(
+                'constraints' => new FailingConstraint(),
+            ))
+            ->setCompound(true)
+            ->setDataMapper($this->dataMapper)
+            ->getForm();
+
+        $context->expects($this->never())
+            ->method('validate');
+
+        $context->expects($this->never())
+            ->method('addViolation');
+
         $context->expects($this->never())
             ->method('addViolationAt');
 
@@ -334,7 +381,7 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
             ->setData($object)
             ->addViewTransformer($failingTransformer)
             ->setCompound(true)
-            ->setDataMapper($this->getDataMapper())
+            ->setDataMapper($this->dataMapper)
             ->add(
                 $this->getBuilder('child')
                     ->addViewTransformer($failingTransformer)
@@ -359,8 +406,12 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
         $object = $this->getMock('\stdClass');
         $options = array('validation_groups' => array($this, 'getValidationGroups'));
         $form = $this->getBuilder('name', '\stdClass', $options)
+            ->setCompound(true)
+            ->setDataMapper($this->dataMapper)
             ->setData($object)
             ->getForm();
+
+        $form->submit(array());
 
         $context->expects($this->at(0))
             ->method('validate')
@@ -379,8 +430,12 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
         $object = $this->getMock('\stdClass');
         $options = array('validation_groups' => 'header');
         $form = $this->getBuilder('name', '\stdClass', $options)
+            ->setCompound(true)
+            ->setDataMapper($this->dataMapper)
             ->setData($object)
             ->getForm();
+
+        $form->submit(array());
 
         $context->expects($this->once())
             ->method('validate')
@@ -398,8 +453,12 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
             return array('group1', 'group2');
         });
         $form = $this->getBuilder('name', '\stdClass', $options)
+            ->setCompound(true)
+            ->setDataMapper($this->dataMapper)
             ->setData($object)
             ->getForm();
+
+        $form->submit(array());
 
         $context->expects($this->at(0))
             ->method('validate')
@@ -419,7 +478,7 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
 
         $parent = $this->getBuilder('parent', null, array('cascade_validation' => true))
             ->setCompound(true)
-            ->setDataMapper($this->getDataMapper())
+            ->setDataMapper($this->dataMapper)
             ->getForm();
         $form = $this->getForm('name', '\stdClass', array(
             'validation_groups' => 'form_group',
@@ -447,11 +506,14 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
 
         $parent = $this->getBuilder('parent', null, array('cascade_validation' => true))
             ->setCompound(true)
-            ->setDataMapper($this->getDataMapper())
+            ->setDataMapper($this->dataMapper)
             ->getForm();
-        $form = $this->getForm('name', '\stdClass', array(
-            'validation_groups' => 'form_group',
-        ));
+        $form = $this->getBuilder('name', '\stdClass', array(
+                'validation_groups' => 'form_group',
+            ))
+            ->setCompound(true)
+            ->setDataMapper($this->dataMapper)
+            ->getForm();
 
         $parent->add($form);
         $parent->add($this->getSubmitButton('submit', array(
@@ -459,6 +521,7 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
         )));
 
         $form->setData($object);
+        $form->submit(array());
 
         $context->expects($this->once())
             ->method('validate')
@@ -479,12 +542,16 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
         );
         $parent = $this->getBuilder('parent', null, $parentOptions)
             ->setCompound(true)
-            ->setDataMapper($this->getDataMapper())
+            ->setDataMapper($this->dataMapper)
             ->getForm();
-        $form = $this->getBuilder('name', '\stdClass')->getForm();
+        $form = $this->getBuilder('name', '\stdClass')
+            ->setCompound(true)
+            ->setDataMapper($this->dataMapper)
+            ->getForm();
         $parent->add($form);
 
         $form->setData($object);
+        $form->submit(array());
 
         $context->expects($this->once())
             ->method('validate')
@@ -505,12 +572,16 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
         );
         $parent = $this->getBuilder('parent', null, $parentOptions)
             ->setCompound(true)
-            ->setDataMapper($this->getDataMapper())
+            ->setDataMapper($this->dataMapper)
             ->getForm();
-        $form = $this->getBuilder('name', '\stdClass')->getForm();
+        $form = $this->getBuilder('name', '\stdClass')
+            ->setCompound(true)
+            ->setDataMapper($this->dataMapper)
+            ->getForm();
         $parent->add($form);
 
         $form->setData($object);
+        $form->submit(array());
 
         $context->expects($this->at(0))
             ->method('validate')
@@ -536,12 +607,16 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
         );
         $parent = $this->getBuilder('parent', null, $parentOptions)
             ->setCompound(true)
-            ->setDataMapper($this->getDataMapper())
+            ->setDataMapper($this->dataMapper)
             ->getForm();
-        $form = $this->getBuilder('name', '\stdClass')->getForm();
+        $form = $this->getBuilder('name', '\stdClass')
+            ->setCompound(true)
+            ->setDataMapper($this->dataMapper)
+            ->getForm();
         $parent->add($form);
 
         $form->setData($object);
+        $form->submit(array());
 
         $context->expects($this->at(0))
             ->method('validate')
@@ -559,8 +634,12 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
         $context = $this->getMockExecutionContext();
         $object = $this->getMock('\stdClass');
         $form = $this->getBuilder('name', '\stdClass')
+            ->setCompound(true)
+            ->setDataMapper($this->dataMapper)
             ->setData($object)
             ->getForm();
+
+        $form->submit(array());
 
         $context->expects($this->once())
             ->method('validate')
@@ -574,9 +653,9 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
     {
         $context = $this->getMockExecutionContext();
 
-        $form = $this->getBuilder()
-            ->setData('scalar')
-            ->getForm();
+        $form = $this->getBuilder()->getForm();
+
+        $form->submit('scalar');
 
         $context->expects($this->never())
             ->method('validate');
@@ -591,7 +670,7 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
 
         $form = $this->getBuilder('parent', null, array('extra_fields_message' => 'Extra!'))
             ->setCompound(true)
-            ->setDataMapper($this->getDataMapper())
+            ->setDataMapper($this->dataMapper)
             ->add($this->getBuilder('child'))
             ->getForm();
 
@@ -625,7 +704,12 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
 
         $context = $this->getMockExecutionContext();
         $options = array('post_max_size_message' => 'Max {{ max }}!');
-        $form = $this->getBuilder('name', null, $options)->getForm();
+        $form = $this->getBuilder('name', null, $options)
+            ->setCompound(true)
+            ->setDataMapper($this->dataMapper)
+            ->getForm();
+
+        $form->submit(array());
 
         for ($i = 0; $i < $nbViolation; ++$i) {
             if (0 === $i && count($params) > 0) {
@@ -671,10 +755,12 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
         $context = $this->getMockExecutionContext();
         $parent = $this->getBuilder()
             ->setCompound(true)
-            ->setDataMapper($this->getDataMapper())
+            ->setDataMapper($this->dataMapper)
             ->getForm();
         $form = $this->getForm();
         $parent->add($form);
+
+        $form->submit(array());
 
         $context->expects($this->never())
             ->method('addViolation');
@@ -727,13 +813,5 @@ class FormValidatorTest extends \PHPUnit_Framework_TestCase
         $builder = new SubmitButtonBuilder($name, $options);
 
         return $builder->getForm();
-    }
-
-    /**
-     * @return \PHPUnit_Framework_MockObject_MockObject
-     */
-    private function getDataMapper()
-    {
-        return $this->getMock('Symfony\Component\Form\DataMapperInterface');
     }
 }

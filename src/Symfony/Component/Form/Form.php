@@ -556,8 +556,10 @@ class Form implements \IteratorAggregate, FormInterface
                 }
 
                 foreach ($this->children as $name => $child) {
-                    if (array_key_exists($name, $submittedData) || $clearMissing) {
-                        $child->submit(isset($submittedData[$name]) ? $submittedData[$name] : null, $clearMissing);
+                    $isSubmitted = array_key_exists($name, $submittedData);
+
+                    if ($isSubmitted || $clearMissing) {
+                        $child->submit($isSubmitted ? $submittedData[$name] : null, $clearMissing);
                         unset($submittedData[$name]);
 
                         if (null !== $this->clickedButton) {
@@ -739,22 +741,12 @@ class Form implements \IteratorAggregate, FormInterface
             return false;
         }
 
-        if (count($this->errors) > 0) {
-            return false;
-        }
-
         if ($this->isDisabled()) {
             return true;
         }
 
-        foreach ($this->children as $child) {
-            if ($child->isSubmitted()) {
-                if (!$child->isValid()) {
-                    return false;
-                }
-            } else if ($child->isEmpty()) {
-                return false;
-            }
+        if (count($this->getErrors(true)) > 0) {
+            return false;
         }
 
         return true;

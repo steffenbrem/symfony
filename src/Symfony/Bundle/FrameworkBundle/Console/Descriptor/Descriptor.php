@@ -55,7 +55,7 @@ abstract class Descriptor implements DescriptorInterface
                 $this->describeContainerService($this->resolveServiceDefinition($object, $options['id']), $options);
                 break;
             case $object instanceof ContainerBuilder && isset($options['parameter']):
-                $this->formatParameter($object->getParameter($options['parameter']));
+                $this->describeContainerParameter($object->getParameter($options['parameter']), $options);
                 break;
             case $object instanceof ContainerBuilder:
                 $this->describeContainerServices($object, $options);
@@ -167,6 +167,14 @@ abstract class Descriptor implements DescriptorInterface
      * @param array $options
      */
     abstract protected function describeContainerAlias(Alias $alias, array $options = array());
+
+    /**
+     * Describes a container parameter.
+     *
+     * @param parameter
+     * @param array $options
+     */
+    abstract protected function describeContainerParameter($parameter, array $options = array());
 
     /**
      * Formats a value as string.
