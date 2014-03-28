@@ -294,6 +294,6 @@ class ViolationMapper implements ViolationMapperInterface
      */
     private function acceptsErrors(FormInterface $form)
     {
-        return $this->allowNonSynchronized || $form->isSynchronized();
+        return $form->isSubmitted() && ($this->allowNonSynchronized || $form->isSynchronized());
     }
 }

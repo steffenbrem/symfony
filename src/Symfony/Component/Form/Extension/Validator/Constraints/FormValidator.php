@@ -51,6 +51,13 @@ class FormValidator extends ConstraintValidator
             return;
         }
 
+        // Ignore non-submitted forms. This happens, for example, in PATCH
+        // requests.
+        // https://github.com/symfony/symfony/issues/9998
+        if (!$form->isSubmitted()) {
+            return;
+        }
+
         /* @var FormInterface $form */
         $config = $form->getConfig();
 
