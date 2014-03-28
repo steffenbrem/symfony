@@ -1,5 +1,5 @@
 {
-    "name": "symfony/symfony",
+    "name": "steffenbrem/symfony",
     "type": "library",
     "description": "The Symfony PHP framework",
     "keywords": ["framework"],
