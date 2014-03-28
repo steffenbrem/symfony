@@ -83,10 +83,5 @@
             "src/Symfony/Component/Intl/Resources/stubs"
         ],
         "files": [ "src/Symfony/Component/Intl/Resources/stubs/functions.php" ]
-    },
-    "extra": {
-        "branch-alias": {
-            "dev-master": "2.5-dev"
-        }
     }
 }
